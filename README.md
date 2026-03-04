@@ -37,20 +37,45 @@ Marketplace path:
 
 Review the exact file changes and installer behavior in [Installation Details](docs/installation-details.md) before running it.
 
-## What Gets Changed In Agent Zero
+## Installation Details
 
-Added:
+Installer flow:
+
+1. Detects the Agent Zero root automatically or uses `A0_ROOT`
+2. Downloads the repository tarball when run through `curl | bash`
+3. Verifies the target looks like a valid Agent Zero checkout
+4. Runs compatibility checks for the required patch anchors before changing anything
+5. Creates timestamped backups under `.a0-llmfallback/backups/<timestamp>/`
+6. Copies the runtime payload into the target Agent Zero tree
+7. Applies targeted anchor-based edits to the two required core files
+8. Writes an install marker for clean uninstall
+9. Prints a hard restart notice
+
+Files added:
 
 - `usr/extensions/agent_init/_20_llm_fallback.py`
 - `usr/helpers/llm_fallback.py`
 - `webui/components/settings/agent/llm_fallback.html`
 
-Modified:
+Files modified:
 
 - `python/helpers/settings.py`
 - `webui/components/settings/agent/agent-settings.html`
 
-The installer backs up each touched file before changing it.
+Backup behavior:
+
+- originals are copied into `.a0-llmfallback/backups/<timestamp>/`
+- uninstall restores those exact copies
+- files that did not exist before install are removed on uninstall
+
+Compatibility behavior:
+
+- if a required file is missing, install aborts
+- if a required anchor is missing, install aborts
+- if `python3` is unavailable, install aborts
+- no backup, copy, or patch step runs after a compatibility failure
+
+More detail is documented in [Installation Details](docs/installation-details.md).
 
 ## Compatibility
 
@@ -75,16 +100,6 @@ To uninstall from a local clone:
 ```bash
 bash uninstall.sh
 ```
-
-## Trust And Transparency
-
-- Short, auditable shell scripts
-- Explicit backup and restore behavior
-- Exact changed-files list
-- Conservative compatibility checks
-- Reversible uninstall
-
-Full details: [Installation Details](docs/installation-details.md)
 
 ## Status
 

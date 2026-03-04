@@ -5,13 +5,14 @@
 1. Detects the Agent Zero root automatically or uses `A0_ROOT`
 2. Downloads the repo tarball when run via `curl | bash`
 3. Verifies the target looks like a valid Agent Zero checkout
-4. Creates timestamped backups under `.a0-llmfallback/backups/`
-5. Copies the runtime payload into `usr/` and `webui/components/settings/agent/`
-6. Applies targeted, anchor-based edits to:
+4. Runs compatibility checks and aborts if the required anchors are missing
+5. Creates timestamped backups under `.a0-llmfallback/backups/`
+6. Copies the runtime payload into `usr/` and `webui/components/settings/agent/`
+7. Applies targeted, anchor-based edits to:
    - `python/helpers/settings.py`
    - `webui/components/settings/agent/agent-settings.html`
-7. Writes install metadata for uninstall
-8. Prints a full restart notice
+8. Writes install metadata for uninstall
+9. Prints a full restart notice
 
 ## What `uninstall.sh` does
 
@@ -36,5 +37,6 @@
 
 - The installer is intentionally small and readable.
 - It fails closed if the expected anchors are missing.
+- No backup or file copy happens after a compatibility failure.
 - It creates exact file backups before modifications.
 - It does not use `git reset`, `git checkout`, or destructive repo commands.

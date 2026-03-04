@@ -48,7 +48,10 @@ main() {
   # shellcheck disable=SC1091
   . "${repo_root}/scripts/verify-target.sh"
   # shellcheck disable=SC1091
+  . "${repo_root}/scripts/check-compatibility.sh"
+  # shellcheck disable=SC1091
   . "${repo_root}/scripts/backup-target.sh"
+  # shellcheck disable=SC1091
   # shellcheck disable=SC1091
   . "${repo_root}/scripts/install-runtime.sh"
   # shellcheck disable=SC1091
@@ -57,6 +60,7 @@ main() {
   local target_root
   target_root="$(detect_a0_root)" || die "Unable to detect Agent Zero. Set A0_ROOT=/path/to/agent-zero and retry."
   verify_target "${target_root}"
+  check_compatibility "${target_root}"
   local stamp
   stamp="$(backup_target "${target_root}")"
   install_runtime "${repo_root}" "${target_root}" "${stamp}"
