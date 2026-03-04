@@ -41,7 +41,7 @@ main() {
     cleanup_root="$(dirname "${repo_root}")"
   fi
 
-  trap '[ -n "${cleanup_root:-}" ] && rm -rf "${cleanup_root}"' EXIT
+  trap '[ -n "${cleanup_root:-}" ] && rm -rf "${cleanup_root:-}"' EXIT
 
   # shellcheck disable=SC1091
   . "${repo_root}/scripts/detect-a0-root.sh"

@@ -14,7 +14,7 @@ class RepoMetadataTests(unittest.TestCase):
         install_sh = (REPO_ROOT / "install.sh").read_text()
         self.assertIn('scripts/check-compatibility.sh', install_sh)
         self.assertIn('check_compatibility "${target_root}"', install_sh)
-        self.assertIn('trap \'[ -n "${cleanup_root:-}" ] && rm -rf "${cleanup_root}"\' EXIT', install_sh)
+        self.assertIn('trap \'[ -n "${cleanup_root:-}" ] && rm -rf "${cleanup_root:-}"\' EXIT', install_sh)
 
     def test_readme_inlines_installation_details(self) -> None:
         readme = (REPO_ROOT / "README.md").read_text()
