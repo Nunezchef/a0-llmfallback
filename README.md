@@ -6,6 +6,8 @@
 [![Target](https://img.shields.io/badge/target-Agent%20Zero-2563eb?style=for-the-badge)](https://github.com/frdel/agent-zero)
 [![Mode](https://img.shields.io/badge/mode-LLM%20Failover-059669?style=for-the-badge)](https://github.com/Nunezchef/a0-llmfallback)
 
+![A0 LLM Fallback hero artwork](docs/assets/hero.jpeg)
+
 `a0-llmfallback` is a standalone add-on for Agent Zero, not a fork. It adds automatic failover for `chat`, `utility`, `browser`, and `embedding` model calls, so Agent Zero can retry against preconfigured fallback models when the primary provider fails or runs out of credits.
 
 ## What It Does
