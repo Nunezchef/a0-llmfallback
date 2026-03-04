@@ -18,6 +18,20 @@
 - Tries the primary model again after the configured recovery interval
 - Adds native settings UI inside Agent Zero for configuring fallback behavior
 
+## UI Preview
+
+LLM Fallback appears as a dedicated settings section in Agent Zero:
+
+![LLM Fallback nav item](docs/assets/ui-fallback-nav-item.png)
+
+Full settings view with the fallback section selected:
+
+![LLM Fallback full settings page](docs/assets/ui-fallback-full.png)
+
+Close-up of the fallback configuration panel:
+
+![LLM Fallback setup panel](docs/assets/ui-fallback-settings-panel.png)
+
 ## Install
 
 One-line install:
