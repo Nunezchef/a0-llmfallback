@@ -1,0 +1,275 @@
+<html>
+  <head>
+    <title>LLM Fallback</title>
+  </head>
+
+  <body>
+    <div x-data>
+      <template x-if="$store.settings.settings?.llm_fallback">
+        <div>
+          <div class="section-title">LLM Fallback</div>
+          <div class="section-description">
+            Automatically switch failed model calls to preconfigured fallback models when a provider is unavailable or out of credits.
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Enable fallback routing</div>
+              <div class="field-description">Turn on automatic per-role fallback across Agent Zero model calls.</div>
+            </div>
+            <div class="field-control">
+              <label class="toggle">
+                <input type="checkbox" x-model="$store.settings.settings.llm_fallback.enabled" />
+                <span class="toggler"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Automatic recovery</div>
+              <div class="field-description">After the recovery interval, Agent Zero will try the primary model again on the next request.</div>
+            </div>
+            <div class="field-control">
+              <label class="toggle">
+                <input type="checkbox" x-model="$store.settings.settings.llm_fallback.auto_recover" />
+                <span class="toggler"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Recovery check interval (seconds)</div>
+              <div class="field-description">How long to stay on fallback before retrying the primary model.</div>
+            </div>
+            <div class="field-control">
+              <input type="number" x-model.number="$store.settings.settings.llm_fallback.recovery_check_interval_seconds" />
+            </div>
+          </div>
+
+          <div class="section-title">Chat Fallback</div>
+          <div class="section-description">Fallback model for the main chat role.</div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Enable chat fallback</div>
+            </div>
+            <div class="field-control">
+              <label class="toggle">
+                <input type="checkbox" x-model="$store.settings.settings.llm_fallback.roles.chat.enabled" />
+                <span class="toggler"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Chat fallback provider</div>
+            </div>
+            <div class="field-control">
+              <select x-model="$store.settings.settings.llm_fallback.roles.chat.provider">
+                <template x-for="option in $store.settings.additional?.chat_providers" :key="`chat-fallback-${option.value}`">
+                  <option :value="option.value" x-text="option.label"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Chat fallback model</div>
+            </div>
+            <div class="field-control">
+              <input type="text" x-model="$store.settings.settings.llm_fallback.roles.chat.model" />
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Chat fallback API base URL</div>
+            </div>
+            <div class="field-control">
+              <input type="text" x-model="$store.settings.settings.llm_fallback.roles.chat.api_base" />
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <div class="field-label">
+              <div class="field-title">Chat fallback additional parameters</div>
+              <div class="field-description">Format is KEY=VALUE on individual lines, like the built-in model settings.</div>
+            </div>
+            <div class="field-control">
+              <textarea x-model="$store.settings.settings.llm_fallback.roles.chat.kwargs"></textarea>
+            </div>
+          </div>
+
+          <div class="section-title">Utility Fallback</div>
+          <div class="section-description">Fallback model for utility prompts and helper calls.</div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Enable utility fallback</div>
+            </div>
+            <div class="field-control">
+              <label class="toggle">
+                <input type="checkbox" x-model="$store.settings.settings.llm_fallback.roles.utility.enabled" />
+                <span class="toggler"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Utility fallback provider</div>
+            </div>
+            <div class="field-control">
+              <select x-model="$store.settings.settings.llm_fallback.roles.utility.provider">
+                <template x-for="option in $store.settings.additional?.chat_providers" :key="`utility-fallback-${option.value}`">
+                  <option :value="option.value" x-text="option.label"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Utility fallback model</div>
+            </div>
+            <div class="field-control">
+              <input type="text" x-model="$store.settings.settings.llm_fallback.roles.utility.model" />
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Utility fallback API base URL</div>
+            </div>
+            <div class="field-control">
+              <input type="text" x-model="$store.settings.settings.llm_fallback.roles.utility.api_base" />
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <div class="field-label">
+              <div class="field-title">Utility fallback additional parameters</div>
+            </div>
+            <div class="field-control">
+              <textarea x-model="$store.settings.settings.llm_fallback.roles.utility.kwargs"></textarea>
+            </div>
+          </div>
+
+          <div class="section-title">Browser Fallback</div>
+          <div class="section-description">Fallback model for browser-use automation.</div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Enable browser fallback</div>
+            </div>
+            <div class="field-control">
+              <label class="toggle">
+                <input type="checkbox" x-model="$store.settings.settings.llm_fallback.roles.browser.enabled" />
+                <span class="toggler"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Browser fallback provider</div>
+            </div>
+            <div class="field-control">
+              <select x-model="$store.settings.settings.llm_fallback.roles.browser.provider">
+                <template x-for="option in $store.settings.additional?.chat_providers" :key="`browser-fallback-${option.value}`">
+                  <option :value="option.value" x-text="option.label"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Browser fallback model</div>
+            </div>
+            <div class="field-control">
+              <input type="text" x-model="$store.settings.settings.llm_fallback.roles.browser.model" />
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Browser fallback API base URL</div>
+            </div>
+            <div class="field-control">
+              <input type="text" x-model="$store.settings.settings.llm_fallback.roles.browser.api_base" />
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <div class="field-label">
+              <div class="field-title">Browser fallback additional parameters</div>
+            </div>
+            <div class="field-control">
+              <textarea x-model="$store.settings.settings.llm_fallback.roles.browser.kwargs"></textarea>
+            </div>
+          </div>
+
+          <div class="section-title">Embedding Fallback</div>
+          <div class="section-description">Fallback model for embedding and retrieval operations.</div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Enable embedding fallback</div>
+            </div>
+            <div class="field-control">
+              <label class="toggle">
+                <input type="checkbox" x-model="$store.settings.settings.llm_fallback.roles.embedding.enabled" />
+                <span class="toggler"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Embedding fallback provider</div>
+            </div>
+            <div class="field-control">
+              <select x-model="$store.settings.settings.llm_fallback.roles.embedding.provider">
+                <template x-for="option in $store.settings.additional?.embedding_providers" :key="`embedding-fallback-${option.value}`">
+                  <option :value="option.value" x-text="option.label"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Embedding fallback model</div>
+            </div>
+            <div class="field-control">
+              <input type="text" x-model="$store.settings.settings.llm_fallback.roles.embedding.model" />
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Embedding fallback API base URL</div>
+            </div>
+            <div class="field-control">
+              <input type="text" x-model="$store.settings.settings.llm_fallback.roles.embedding.api_base" />
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <div class="field-label">
+              <div class="field-title">Embedding fallback additional parameters</div>
+            </div>
+            <div class="field-control">
+              <textarea x-model="$store.settings.settings.llm_fallback.roles.embedding.kwargs"></textarea>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </body>
+</html>
