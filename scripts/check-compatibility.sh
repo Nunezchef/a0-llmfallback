@@ -7,7 +7,7 @@ check_compatibility() {
   [ -f "${settings_file}" ] || die "Missing ${settings_file}"
   [ -f "${agent_settings_file}" ] || die "Missing ${agent_settings_file}"
 
-  grep -q 'browser_http_headers: dict\\[str, Any\\]' "${settings_file}" \
+  grep -q 'browser_http_headers: dict\[str, Any\]' "${settings_file}" \
     || die "Unsupported settings.py layout: typed anchor not found"
   grep -q 'browser_http_headers=get_default_value(\"browser_http_headers\", {})' "${settings_file}" \
     || die "Unsupported settings.py layout: default anchor not found"
@@ -15,7 +15,7 @@ check_compatibility() {
     || die "Unsupported settings.py layout: helper anchor not found"
   grep -q '^[[:space:]]*# normalize certain fields$' "${settings_file}" \
     || die "Unsupported settings.py layout: convert_out anchor not found"
-  grep -q '^[[:space:]]*current\\[key\\] = value$' "${settings_file}" \
+  grep -q '^[[:space:]]*current\[key\] = value$' "${settings_file}" \
     || die "Unsupported settings.py layout: convert_in anchor not found"
 
   grep -q 'href=\"#section-memory\"' "${agent_settings_file}" \
