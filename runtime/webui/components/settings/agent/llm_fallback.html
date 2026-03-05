@@ -70,7 +70,7 @@
             <div class="field-control">
               <select x-model="$store.settings.settings.llm_fallback.roles.chat.provider">
                 <template x-for="option in $store.settings.additional?.chat_providers" :key="`chat-fallback-${option.value}`">
-                  <option :value="option.value" x-text="option.label"></option>
+                  <option :value="option.value" :selected="option.value === $store.settings.settings.llm_fallback.roles.chat.provider" x-text="option.label"></option>
                 </template>
               </select>
             </div>
@@ -126,7 +126,7 @@
             <div class="field-control">
               <select x-model="$store.settings.settings.llm_fallback.roles.utility.provider">
                 <template x-for="option in $store.settings.additional?.chat_providers" :key="`utility-fallback-${option.value}`">
-                  <option :value="option.value" x-text="option.label"></option>
+                  <option :value="option.value" :selected="option.value === $store.settings.settings.llm_fallback.roles.utility.provider" x-text="option.label"></option>
                 </template>
               </select>
             </div>
@@ -181,7 +181,7 @@
             <div class="field-control">
               <select x-model="$store.settings.settings.llm_fallback.roles.browser.provider">
                 <template x-for="option in $store.settings.additional?.chat_providers" :key="`browser-fallback-${option.value}`">
-                  <option :value="option.value" x-text="option.label"></option>
+                  <option :value="option.value" :selected="option.value === $store.settings.settings.llm_fallback.roles.browser.provider" x-text="option.label"></option>
                 </template>
               </select>
             </div>
@@ -236,7 +236,7 @@
             <div class="field-control">
               <select x-model="$store.settings.settings.llm_fallback.roles.embedding.provider">
                 <template x-for="option in $store.settings.additional?.embedding_providers" :key="`embedding-fallback-${option.value}`">
-                  <option :value="option.value" x-text="option.label"></option>
+                  <option :value="option.value" :selected="option.value === $store.settings.settings.llm_fallback.roles.embedding.provider" x-text="option.label"></option>
                 </template>
               </select>
             </div>
