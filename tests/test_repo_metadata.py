@@ -10,17 +10,25 @@ class RepoMetadataTests(unittest.TestCase):
         plugin_yaml = Path("/a0/plugins/llm-fallback/plugin.yaml").read_text()
         self.assertIn("github: https://github.com/Nunezchef/a0-llmfallback", plugin_yaml)
 
-    def test_installer_uses_compatibility_check_script(self) -> None:
-        install_sh = (REPO_ROOT / "install.sh").read_text()
-        self.assertIn('scripts/check-compatibility.sh', install_sh)
-        self.assertIn('check_compatibility "${target_root}"', install_sh)
-        self.assertIn('trap \'[ -n "${cleanup_root:-}" ] && rm -rf "${cleanup_root:-}"\' EXIT', install_sh)
+    def test_repository_does_not_ship_install_scripts(self) -> None:
+        self.assertFalse((REPO_ROOT / "install.sh").exists())
+        self.assertFalse((REPO_ROOT / "uninstall.sh").exists())
+        self.assertFalse((REPO_ROOT / "scripts").exists())
 
-    def test_readme_inlines_installation_details(self) -> None:
+    def test_runtime_files_are_self_contained(self) -> None:
+        self.assertTrue(
+            (REPO_ROOT / "runtime" / "usr" / "extensions" / "agent_init" / "_20_llm_fallback.py").exists()
+        )
+        self.assertTrue((REPO_ROOT / "runtime" / "usr" / "helpers" / "llm_fallback.py").exists())
+        self.assertTrue(
+            (REPO_ROOT / "runtime" / "webui" / "components" / "settings" / "agent" / "llm_fallback.html").exists()
+        )
+
+    def test_readme_describes_self_contained_distribution(self) -> None:
         readme = (REPO_ROOT / "README.md").read_text()
-        self.assertIn("## Installation Details", readme)
-        self.assertNotIn("## Trust And Transparency", readme)
-        self.assertIn("1. Detects the Agent Zero root automatically", readme)
+        self.assertIn("self-contained plugin repository", readme)
+        self.assertNotIn("curl -fsSL", readme)
+        self.assertNotIn("install.sh", readme)
 
 
 if __name__ == "__main__":

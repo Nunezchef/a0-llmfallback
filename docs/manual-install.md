@@ -1,24 +1,11 @@
-# Manual Install
+# Manual Integration (Development)
 
-If you do not want to use `curl | bash`, clone the repo and run:
+This repository no longer uses install/uninstall scripts.
 
-```bash
-git clone https://github.com/Nunezchef/a0-llmfallback.git
-cd a0-llmfallback
-bash install.sh
-```
+For development or local debugging, inspect and integrate the plugin-owned runtime files:
 
-Optional:
+- `runtime/usr/extensions/agent_init/_20_llm_fallback.py`
+- `runtime/usr/helpers/llm_fallback.py`
+- `runtime/webui/components/settings/agent/llm_fallback.html`
 
-```bash
-A0_ROOT=/path/to/agent-zero bash install.sh
-```
-
-Manual inspection points:
-
-- review `install.sh`
-- review `scripts/*.sh`
-- review `runtime/`
-- review [installation-details.md](installation-details.md)
-
-After install, fully restart Agent Zero.
+Use your Agent Zero environment's plugin workflow to load this repository as a plugin source.

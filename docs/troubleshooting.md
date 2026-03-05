@@ -1,28 +1,16 @@
 # Troubleshooting
 
-## Installer says it cannot find Agent Zero
+## Plugin does not appear in Agent Zero
 
-Set `A0_ROOT` explicitly:
-
-```bash
-A0_ROOT=/a0 bash install.sh
-```
-
-## Installer aborts on compatibility checks
-
-Your local Agent Zero files likely differ from the expected anchors. Review:
-
-- `python/helpers/settings.py`
-- `webui/components/settings/agent/agent-settings.html`
-
-Then compare against the behavior described in [installation-details.md](installation-details.md).
+- Verify `plugin.yaml` is present at repository root.
+- Verify Agent Zero can reach this GitHub repository.
 
 ## Settings UI does not appear
 
 - fully restart Agent Zero
 - open a fresh settings session
-- verify the file exists:
-  - `webui/components/settings/agent/llm_fallback.html`
+- verify plugin runtime assets are available:
+  - `runtime/webui/components/settings/agent/llm_fallback.html`
 
 ## Fallback does not trigger
 

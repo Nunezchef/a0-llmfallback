@@ -1,25 +1,19 @@
 # Compatibility
 
-`a0-llmfallback` currently targets the standard Agent Zero repository layout and assumes these files exist:
+`a0-llmfallback` is distributed as a self-contained plugin repository.
 
-- `run_ui.py`
-- `python/helpers/settings.py`
-- `webui/components/settings/agent/agent-settings.html`
-- `usr/extensions/`
-- `usr/helpers/`
+Core assumptions:
 
-The installer verifies the target looks like Agent Zero and then checks for expected anchor text before modifying core files. If those anchors are missing, the install aborts instead of guessing.
+- Agent Zero plugin loading supports plugin-owned runtime files
+- The plugin source repository is reachable from the host installation path
+- The host Agent Zero version supports `usr/extensions/agent_init`
 
-Current compatibility assumptions:
+Runtime files in this repository:
 
-- A Git checkout of Agent Zero
-- Python 3 available on the host
-- `curl` or `wget` available for the one-line installer
+- `runtime/usr/extensions/agent_init/_20_llm_fallback.py`
+- `runtime/usr/helpers/llm_fallback.py`
+- `runtime/webui/components/settings/agent/llm_fallback.html`
 
-Higher risk cases:
+Current limitation:
 
-- heavily customized `python/helpers/settings.py`
-- heavily customized `agent-settings.html`
-- local edits that already added another settings section using the same anchors
-
-If the installer aborts, use [manual-install.md](manual-install.md) to inspect the expected changes.
+- If your host Agent Zero version does not yet support loading plugin-owned UI/runtime paths directly, this plugin may require host updates before full activation.
