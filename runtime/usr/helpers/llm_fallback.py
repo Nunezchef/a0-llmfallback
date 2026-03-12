@@ -1,4 +1,5 @@
 import inspect
+import re
 import time
 from dataclasses import dataclass
 from types import MethodType
@@ -19,6 +20,39 @@ ROLE_GETTERS = {
     "embedding": "get_embedding_model",
 }
 
+_EVENT_COOLDOWN_SECONDS = 20
+_LAST_EVENT_AT: dict[tuple[str, str], float] = {}
+
+_TIMEOUT_MARKERS = (
+    "timeout",
+    "timed out",
+    "deadline exceeded",
+    "context deadline exceeded",
+    "read timed out",
+    "connection timed out",
+)
+_RATE_LIMIT_MARKERS = (
+    "rate limit",
+    "too many requests",
+    "429",
+    "weekly usage limit",
+)
+_QUOTA_MARKERS = (
+    "insufficient_quota",
+    "quota exceeded",
+    "out of credits",
+    "out of tokens",
+    "resource exhausted",
+)
+_PROVIDER_MARKERS = (
+    "service unavailable",
+    "temporarily unavailable",
+    "connection error",
+    "connection reset",
+    "provider error",
+    "apiconnectionerror",
+)
+
 
 @dataclass
 class RoleState:
@@ -32,6 +66,7 @@ _STATE = {role: RoleState() for role in ROLE_ATTRS}
 def reset_state() -> None:
     for role in _STATE:
         _STATE[role] = RoleState()
+    _LAST_EVENT_AT.clear()
 
 
 def get_state(role: str) -> RoleState:
@@ -130,12 +165,66 @@ def should_use_fallback(role: str, config: dict[str, Any] | None = None) -> bool
     return True
 
 
+def _extract_error_text(exc: Exception) -> str:
+    return " ".join(str(part) for part in getattr(exc, "args", ()) if part).strip() or str(exc)
+
+
+def _extract_status_code(exc: Exception, text: str) -> int | None:
+    status_code = getattr(exc, "status_code", None)
+    if isinstance(status_code, int):
+        return status_code
+    match = re.search(r"statuscode\"\s*:\s*(\d+)", text, re.IGNORECASE)
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
+
+
+def classify_failover_reason(exc: Exception, config: dict[str, Any] | None = None) -> dict[str, Any]:
+    cfg = config or get_fallback_settings()
+    raw_text = _extract_error_text(exc)
+    text = raw_text.lower()
+    status_code = _extract_status_code(exc, raw_text)
+
+    if isinstance(status_code, int):
+        if status_code == 429:
+            reason = "rate_limit"
+        elif status_code in (408, 504):
+            reason = "timeout"
+        elif status_code >= 500:
+            reason = "provider_error"
+        else:
+            reason = "http_error"
+        return {"reason": reason, "status_code": status_code, "error_text": raw_text}
+
+    if any(marker in text for marker in _TIMEOUT_MARKERS):
+        return {"reason": "timeout", "status_code": None, "error_text": raw_text}
+    if any(marker in text for marker in _RATE_LIMIT_MARKERS):
+        return {"reason": "rate_limit", "status_code": None, "error_text": raw_text}
+    if any(marker in text for marker in _QUOTA_MARKERS):
+        return {"reason": "quota_exhausted", "status_code": None, "error_text": raw_text}
+    if any(marker in text for marker in _PROVIDER_MARKERS):
+        return {"reason": "provider_error", "status_code": None, "error_text": raw_text}
+
+    substrings = [
+        str(item).strip().lower()
+        for item in cfg.get("fail_on_error_substrings", [])
+        if str(item).strip()
+    ]
+    if any(item in text for item in substrings):
+        return {"reason": "configured_error_match", "status_code": None, "error_text": raw_text}
+
+    return {"reason": "unknown_error", "status_code": None, "error_text": raw_text}
+
+
 def should_failover(role: str, exc: Exception, config: dict[str, Any] | None = None) -> bool:
     cfg = config or get_fallback_settings()
     if not is_role_enabled(role, cfg):
         return False
 
-    status_code = getattr(exc, "status_code", None)
+    status_code = _extract_status_code(exc, _extract_error_text(exc))
     if isinstance(status_code, int):
         statuses = {
             int(code) for code in cfg.get("fail_on_http_statuses", []) if isinstance(code, int)
@@ -143,25 +232,8 @@ def should_failover(role: str, exc: Exception, config: dict[str, Any] | None = N
         if status_code in statuses or status_code >= 500:
             return True
 
-    text = " ".join(str(part) for part in getattr(exc, "args", ()) if part).strip() or str(exc)
-    text = text.lower()
-    substrings = [
-        str(item).strip().lower()
-        for item in cfg.get("fail_on_error_substrings", [])
-        if str(item).strip()
-    ]
-    if any(item in text for item in substrings):
-        return True
-
-    generic_markers = (
-        "timeout",
-        "timed out",
-        "connection error",
-        "connection reset",
-        "service unavailable",
-        "temporarily unavailable",
-    )
-    return any(marker in text for marker in generic_markers)
+    reason_info = classify_failover_reason(exc, cfg)
+    return reason_info["reason"] != "unknown_error"
 
 
 def _normalize_kwargs(value: dict[str, Any]) -> dict[str, Any]:
@@ -225,8 +297,79 @@ def build_model(agent: Any, role: str, use_fallback: bool = False) -> Any:
     )
 
 
+def _should_emit_observability_event(role: str, event: str) -> bool:
+    now = time.monotonic()
+    key = (role, event)
+    last = _LAST_EVENT_AT.get(key, 0.0)
+    if (now - last) < _EVENT_COOLDOWN_SECONDS:
+        return False
+    _LAST_EVENT_AT[key] = now
+    return True
+
+
+def _emit_observability_event(
+    agent: Any,
+    role: str,
+    event: str,
+    reason: str,
+    error_text: str = "",
+) -> None:
+    if not _should_emit_observability_event(role, event):
+        return
+
+    try:
+        from python.helpers.notification import (
+            NotificationManager,
+            NotificationPriority,
+            NotificationType,
+        )
+
+        primary_cfg = getattr(agent.config, ROLE_ATTRS[role], None)
+        fallback_cfg = get_fallback_settings()["roles"].get(role, {})
+        fallback_target = f'{fallback_cfg.get("provider", "?")}/{fallback_cfg.get("model", "?")}'
+        primary_target = "unknown"
+        if primary_cfg is not None:
+            primary_target = f"{getattr(primary_cfg, 'provider', '?')}/{getattr(primary_cfg, 'name', '?')}"
+
+        if event == "activated":
+            NotificationManager.send_notification(
+                type=NotificationType.WARNING,
+                priority=NotificationPriority.HIGH,
+                title=f"LLM fallback activated ({role})",
+                message=f"Switched to {fallback_target} due to {reason.replace('_', ' ')}.",
+                detail=f"Primary: {primary_target}\nFallback: {fallback_target}\nReason: {reason}\nError: {error_text}",
+                display_time=8,
+                group=f"llm_fallback_{role}",
+            )
+        else:
+            NotificationManager.send_notification(
+                type=NotificationType.SUCCESS,
+                priority=NotificationPriority.NORMAL,
+                title=f"LLM primary recovered ({role})",
+                message=f"Returned to {primary_target} after fallback period.",
+                detail=f"Primary: {primary_target}\nPrevious fallback: {fallback_target}",
+                display_time=6,
+                group=f"llm_fallback_{role}",
+            )
+    except Exception:
+        pass
+
+    if role != "chat" or agent is None:
+        return
+    try:
+        if event == "activated":
+            agent.hist_add_warning(
+                f"[LLM Fallback] Chat switched to fallback due to {reason.replace('_', ' ')}."
+            )
+        else:
+            agent.hist_add_warning("[LLM Fallback] Chat primary model recovered.")
+    except Exception:
+        pass
+
+
 class FallbackModelProxy:
-    def __init__(self, role: str, builder: Callable[[bool], Any]):
+    def __init__(self, agent: Any, role: str, builder: Callable[[bool], Any]):
+        self._agent = agent
         self._role = role
         self._builder = builder
         self._primary_model: Any | None = None
@@ -241,15 +384,35 @@ class FallbackModelProxy:
             self._primary_model = self._builder(False)
         return self._primary_model
 
-    def _call_with_retry(self, attr_name: str, *args: Any, **kwargs: Any) -> Any:
+    def _resolve_fallback_usage(self) -> bool:
+        previous_mode = get_state(self._role).mode
         use_fallback = should_use_fallback(self._role)
+        if previous_mode == "fallback" and get_state(self._role).mode == "primary":
+            _emit_observability_event(
+                agent=self._agent,
+                role=self._role,
+                event="recovered",
+                reason="recovery_interval_elapsed",
+            )
+        return use_fallback
+
+    def _call_with_retry(self, attr_name: str, *args: Any, **kwargs: Any) -> Any:
+        use_fallback = self._resolve_fallback_usage()
         target = getattr(self._get_model(use_fallback), attr_name)
         try:
             result = target(*args, **kwargs)
         except Exception as exc:
             if use_fallback or not should_failover(self._role, exc):
                 raise
+            reason_info = classify_failover_reason(exc)
             mark_failed(self._role)
+            _emit_observability_event(
+                agent=self._agent,
+                role=self._role,
+                event="activated",
+                reason=reason_info["reason"],
+                error_text=reason_info["error_text"],
+            )
             retry_target = getattr(self._get_model(True), attr_name)
             return retry_target(*args, **kwargs)
 
@@ -270,7 +433,15 @@ class FallbackModelProxy:
         except Exception as exc:
             if use_fallback or not should_failover(self._role, exc):
                 raise
+            reason_info = classify_failover_reason(exc)
             mark_failed(self._role)
+            _emit_observability_event(
+                agent=self._agent,
+                role=self._role,
+                event="activated",
+                reason=reason_info["reason"],
+                error_text=reason_info["error_text"],
+            )
             retry_target = getattr(self._get_model(True), attr_name)
             retry_result = retry_target(*args, **kwargs)
             if inspect.isawaitable(retry_result):
@@ -278,7 +449,7 @@ class FallbackModelProxy:
             return retry_result
 
     def __getattr__(self, attr_name: str) -> Any:
-        current = getattr(self._get_model(should_use_fallback(self._role)), attr_name)
+        current = getattr(self._get_model(False), attr_name)
         if not callable(current):
             return current
 
@@ -289,7 +460,11 @@ class FallbackModelProxy:
 
 
 def make_proxy(agent: Any, role: str) -> FallbackModelProxy:
-    return FallbackModelProxy(role, lambda use_fallback: build_model(agent, role, use_fallback))
+    return FallbackModelProxy(
+        agent=agent,
+        role=role,
+        builder=lambda use_fallback: build_model(agent, role, use_fallback),
+    )
 
 
 def install_agent_fallback_hooks(agent: Any) -> None:
