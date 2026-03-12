@@ -48,6 +48,39 @@
             </div>
           </div>
 
+          <div class="field field-full">
+            <div class="field-label">
+              <div class="field-title">Fallback Events</div>
+              <div class="field-description">Recent fallback activation and recovery events from Agent Zero notifications.</div>
+            </div>
+            <div class="field-control">
+              <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                <button type="button" class="btn btn-secondary" @click="$store.settings.refreshFallbackEvents && $store.settings.refreshFallbackEvents()">Refresh</button>
+              </div>
+              <div style="font-size:12px;color:var(--color-text-secondary, #888);display:grid;gap:8px;">
+                <template x-for="role in ['chat','utility','browser','embedding']" :key="`fallback-events-${role}`">
+                  <div style="border:1px solid var(--color-border, #ddd);border-radius:8px;padding:8px;">
+                    <div style="font-weight:600;text-transform:capitalize;margin-bottom:4px;" x-text="`${role} events`"></div>
+                    <template x-if="!$store.settings.fallbackEventsByRole?.[role]?.length">
+                      <div style="opacity:0.75;">No recent events.</div>
+                    </template>
+                    <template x-if="$store.settings.fallbackEventsByRole?.[role]?.length">
+                      <div>
+                        <template x-for="evt in $store.settings.fallbackEventsByRole[role]" :key="`${role}-${evt.timestamp}-${evt.title}`">
+                          <div style="display:flex;gap:6px;align-items:baseline;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            <span style="font-weight:600;" x-text="evt.kind"></span>
+                            <span style="opacity:0.9;overflow:hidden;text-overflow:ellipsis;" x-text="evt.message || evt.title"></span>
+                            <span style="margin-left:auto;opacity:0.7;" x-text="new Date(evt.timestamp).toLocaleString()"></span>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+
           <div class="section-title">Chat Fallback</div>
           <div class="section-description">Fallback model for the main chat role.</div>
 
