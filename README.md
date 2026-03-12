@@ -15,6 +15,7 @@
 - Switches the affected role to a configured fallback model
 - Retries the failed call once on the fallback model
 - Tries the primary model again after the configured recovery interval
+- Emits Agent Zero notifications for fallback activation and primary recovery with reason labels
 - Includes plugin-owned runtime files and plugin metadata in this repository
 
 ## UI Preview
